@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrueScore AI - Gerçek Yorum Analizi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
+
+    <div class="bg-white p-10 rounded-2xl shadow-xl w-full max-w-3xl text-center">
+        <h1 class="text-4xl font-extrabold text-blue-600 mb-2">TrueScore AI 🤖</h1>
+        <p class="text-gray-500 mb-8">Ürün linkini yapıştırın, kargo ve paketleme yorumlarından arındırılmış gerçek ürün puanını öğrenin.</p>
+
+        <div class="flex gap-4 mb-8">
+            <input type="text" id="urunLinkInput" placeholder="Hepsiburada ürün linkini buraya yapıştırın..."
+                   class="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg">
+            <button onclick="analizBaslat()"
+                    class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition duration-300 whitespace-nowrap">
+                Analiz Et
+            </button>
+        </div>
+
+        <div id="loading" class="hidden flex flex-col items-center justify-center mb-4">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-3"></div>
+            <p class="text-blue-500 font-semibold" id="loadingText">Sistem kontrol ediliyor... (15-20 saniye sürebilir)</p>
+        </div>
+
+        <div id="sonucAlani" class="hidden grid grid-cols-2 gap-6 text-left">
+
+            <div class="bg-gray-100 p-6 rounded-lg border-l-4 border-gray-400">
+                <h3 class="text-sm text-gray-500 font-bold uppercase tracking-wider">Genel Puan</h3>
+                <p id="genelPuan" class="text-4xl font-black text-gray-800 my-2">0.0</p>
+                <p class="text-sm text-gray-500"><span id="toplamYorum" class="font-bold">0</span> toplam yorum</p>
+            </div>
+
+            <div class="bg-blue-50 p-6 rounded-lg border-l-4 border-blue-500 shadow-sm">
+                <h3 class="text-sm text-blue-600 font-bold uppercase tracking-wider">TrueScore (Gerçek)</h3>
+                <p id="gercekPuan" class="text-5xl font-black text-blue-600 my-2">0.0</p>
+                <p class="text-sm text-gray-600"><span id="alakaliYorum" class="font-bold">0</span> alakalı yorum baz alındı</p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        async function analizBaslat() {
+            const urunLink = document.getElementById('urunLinkInput').value;
+            if(!urunLink) {
+                alert("Lütfen bir ürün linki girin!");
+                return;
+            }
+
+            // Arayüzü hazırla
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('sonucAlani').classList.add('hidden');
+
+            try {
+                // DİKKAT: Artık API'ye 'product_id' değil, 'url' gönderiyoruz!
+                const response = await fetch('http://127.0.0.1:8000/analiz-et/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: urunLink })
+                });
+
+                const data = await response.json();
+
+                if(data.durum === "Başarılı") {
+                    document.getElementById('genelPuan').innerText = data.analiz_sonucu.genel_puan;
+                    document.getElementById('gercekPuan').innerText = data.analiz_sonucu.gercek_puan;
+                    document.getElementById('toplamYorum').innerText = data.analiz_sonucu.toplam_yorum;
+                    document.getElementById('alakaliYorum').innerText = data.analiz_sonucu.alakali_yorum_sayisi;
+
+                    document.getElementById('sonucAlani').classList.remove('hidden');
+                } else {
+                    alert("Hata: " + data.hata_mesaji);
+                }
+            } catch (error) {
+                alert("API'ye bağlanılamadı. Uvicorn sunucusunun çalıştığından emin olun.");
+                console.error(error);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
